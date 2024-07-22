@@ -1,85 +1,81 @@
-<script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <v-layout class="rounded rounded-md">
+    <v-app-bar :title="`Welcome, ${user?.username ?? 'User'}`" flat>
+      <template v-slot:prepend>
+        <v-app-bar-nav-icon></v-app-bar-nav-icon>
+      </template>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+      <template #append>
+        <v-btn icon @click="toggleTheme">
+          <v-icon v-if="isDarkTheme">mdi-weather-sunny</v-icon>
+          <v-icon v-else>mdi-weather-night</v-icon>
+        </v-btn>
+        <v-btn v-if="isLoggedIn" icon @click="logoutHandler">
+          <v-icon>mdi-logout</v-icon>
+        </v-btn>
+      </template>
+    </v-app-bar>
 
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
+    <v-navigation-drawer :model-value="false">
+      <v-list>
+        <v-list-item title="Navigation drawer"></v-list-item>
+      </v-list>
+    </v-navigation-drawer>
 
-  <RouterView />
+    <v-main class="d-flex align-center justify-center px-5" style="min-height: 100vh;">
+      <RouterView></RouterView>
+    </v-main>
+
+    <v-snackbar v-model="snackBarVisible" location="top center">
+      {{ snackBarMessage }}
+
+      <template v-slot:actions>
+        <v-btn color="pink" variant="text" @click="closeSnackBar">
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </v-layout>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+<script setup lang="ts">
+import { computed, watch } from 'vue';
+import { RouterView } from 'vue-router'
+import { useTheme } from 'vuetify';
+import { useAuthStore } from './stores/authStore';
+import router from './router';
+import { storeToRefs } from 'pinia';
+import { useSnackToast } from './stores/snackToast';
+const theme = useTheme()
+
+const toggleTheme = () => {
+  theme.global.name.value = theme.global.name.value === 'light' ? 'dark' : 'light';
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
+const isDarkTheme = computed(() => theme.global.name.value === 'dark');
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
+const { logout } = useAuthStore();
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
+const { isLoggedIn, user } = storeToRefs(useAuthStore())
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
+const { message: snackBarMessage, snackBarVisible } = storeToRefs(useSnackToast());
 
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
+const { closeSnackBar } = useSnackToast();
 
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+const logoutHandler = () => {
+  if (!isLoggedIn) {
+    return;
   }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+  logout()
+    .then(() => {
+      router.push({ name: 'login' })
+    });
 }
-</style>
+
+watch(isLoggedIn, (value) => {
+  console.log(value)
+})
+
+</script>
+
+<style scoped></style>
